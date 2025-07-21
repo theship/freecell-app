@@ -1,10 +1,8 @@
 'use client'
 
-import { useSession } from "next-auth/react"
 import { Trophy, Target, Clock, TrendingUp } from "lucide-react"
 
 export function GameStats() {
-  const { data: session } = useSession()
 
   const mockStats = {
     gamesPlayed: 42,

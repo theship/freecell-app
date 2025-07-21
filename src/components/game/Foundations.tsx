@@ -8,7 +8,6 @@ interface FoundationsProps {
   onFoundationClick: (foundationIndex: number) => void
 }
 
-const suitOrder = ['hearts', 'diamonds', 'clubs', 'spades']
 
 export function Foundations({ foundations, onFoundationClick }: FoundationsProps) {
   return (

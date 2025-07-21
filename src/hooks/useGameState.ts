@@ -6,8 +6,7 @@ import {
   initializeGame, 
   isValidTableauMove, 
   isValidFoundationMove, 
-  checkWinCondition,
-  canMoveSequence
+  checkWinCondition
 } from '@/lib/game'
 
 export function useGameState() {

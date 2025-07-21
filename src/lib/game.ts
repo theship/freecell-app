@@ -100,7 +100,7 @@ export function canMoveSequence(tableau: Card[][], fromCol: number, cardIndex: n
   return true
 }
 
-export function getMaxMovableSequence(gameState: GameState, fromCol: number): number {
+export function getMaxMovableSequence(gameState: GameState): number {
   const { freeCells, tableau } = gameState
   const emptyFreeCells = freeCells.filter(cell => cell === null).length
   const emptyColumns = tableau.filter(col => col.length === 0).length
