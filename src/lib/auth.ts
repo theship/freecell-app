@@ -3,6 +3,11 @@ import GithubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google"
 import { SupabaseAdapter } from "@auth/supabase-adapter"
 
+console.log('Google env vars:', { 
+  hasGoogleId: !!process.env.GOOGLE_ID,
+  hasGoogleSecret: !!process.env.GOOGLE_SECRET 
+});
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GithubProvider({
