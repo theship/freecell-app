@@ -2,7 +2,7 @@
 
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
-import { Github } from "lucide-react"
+import { Github, Mail } from "lucide-react"
 
 interface Provider {
   id: string
@@ -36,16 +36,26 @@ export default function SignIn() {
           </p>
         </div>
         <div className="mt-8 space-y-4">
-          {Object.values(providers).map((provider: Provider) => (
-            <button
-              key={provider.name}
-              onClick={() => signIn(provider.id, { callbackUrl: '/dashboard' })}
-              className="group relative flex w-full justify-center rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
-            >
-              <Github className="mr-2 h-4 w-4" />
-              Sign in with {provider.name}
-            </button>
-          ))}
+          {Object.values(providers).map((provider: Provider) => {
+            const isGithub = provider.id === 'github'
+            const isGoogle = provider.id === 'google'
+            
+            return (
+              <button
+                key={provider.name}
+                onClick={() => signIn(provider.id, { callbackUrl: '/dashboard' })}
+                className={`group relative flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                  isGithub 
+                    ? 'bg-gray-900 text-white hover:bg-gray-800 focus-visible:outline-gray-900'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:outline-blue-600'
+                }`}
+              >
+                {isGithub && <Github className="mr-2 h-4 w-4" />}
+                {isGoogle && <Mail className="mr-2 h-4 w-4" />}
+                Sign in with {provider.name}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
