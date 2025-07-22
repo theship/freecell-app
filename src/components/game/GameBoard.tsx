@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useGameState } from '@/hooks/useGameState'
 import { FreeCells } from './FreeCells'
 import { Foundations } from './Foundations'
 import { Tableau } from './Tableau'
@@ -13,8 +12,16 @@ type SelectedCard = {
   cardIndex?: number
 } | null
 
-export function GameBoard() {
-  const { gameState, newGame, moveCard } = useGameState()
+interface GameBoardProps {
+  gameState: {
+    gameState: any
+    newGame: () => void
+    moveCard: (from: any, to: any) => void
+  }
+}
+
+export function GameBoard({ gameState: gameStateHook }: GameBoardProps) {
+  const { gameState, newGame, moveCard } = gameStateHook
   const [selectedCard, setSelectedCard] = useState<SelectedCard>(null)
 
   const handleFreeCellClick = (cellIndex: number) => {
@@ -41,24 +48,25 @@ export function GameBoard() {
       setSelectedCard(null)
     } else {
       const column = gameState.tableau[columnIndex]
-      if (column.length > 0 && cardIndex === column.length - 1) {
+      if (column.length > 0 && cardIndex < column.length) {
+        // Allow selecting any card in the column, not just the last one
         setSelectedCard({ type: 'tableau', index: columnIndex, cardIndex })
       }
     }
   }
 
   return (
-    <div className="p-6 bg-green-200 min-h-screen">
+    <div className="p-6 min-h-screen" style={{ backgroundColor: '#007449' }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Freecell</h1>
+          <h1 className="text-3xl font-bold text-white">Freecell</h1>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-200">
               Moves: {gameState.moves}
             </div>
             {gameState.isWon && (
-              <div className="flex items-center gap-1 text-green-600 font-bold">
+              <div className="flex items-center gap-1 text-yellow-300 font-bold">
                 <Trophy className="w-4 h-4" />
                 You Won!
               </div>
@@ -78,10 +86,12 @@ export function GameBoard() {
           <FreeCells 
             freeCells={gameState.freeCells}
             onCardClick={handleFreeCellClick}
+            selectedCard={selectedCard}
           />
           <Foundations 
             foundations={gameState.foundations}
             onFoundationClick={handleFoundationClick}
+            selectedCard={selectedCard}
           />
         </div>
 
@@ -89,11 +99,12 @@ export function GameBoard() {
         <Tableau 
           tableau={gameState.tableau}
           onCardClick={handleTableauClick}
+          selectedCard={selectedCard}
         />
 
         {/* Game Status */}
         {selectedCard && (
-          <div className="mt-4 text-sm text-gray-600">
+          <div className="mt-4 text-sm text-gray-200">
             Selected: {selectedCard.type} {selectedCard.index + 1}
           </div>
         )}

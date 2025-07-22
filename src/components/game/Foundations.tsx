@@ -6,13 +6,14 @@ import { Card } from './Card'
 interface FoundationsProps {
   foundations: CardType[][]
   onFoundationClick: (foundationIndex: number) => void
+  selectedCard?: { type: string; index: number; cardIndex?: number } | null
 }
 
 
-export function Foundations({ foundations, onFoundationClick }: FoundationsProps) {
+export function Foundations({ foundations, onFoundationClick, selectedCard }: FoundationsProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm font-semibold text-gray-600">Foundations</div>
+      <div className="text-sm font-semibold text-gray-200">Foundations</div>
       <div className="flex gap-2">
         {foundations.map((foundation, index) => {
           const topCard = foundation.length > 0 ? foundation[foundation.length - 1] : null
@@ -20,6 +21,7 @@ export function Foundations({ foundations, onFoundationClick }: FoundationsProps
             <Card
               key={index}
               card={topCard}
+              isSelected={selectedCard?.type === 'foundation' && selectedCard?.index === index}
               onClick={() => onFoundationClick(index)}
               className="hover:bg-green-50"
             />

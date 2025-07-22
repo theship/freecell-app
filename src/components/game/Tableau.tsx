@@ -6,14 +6,15 @@ import { Card } from './Card'
 interface TableauProps {
   tableau: CardType[][]
   onCardClick: (columnIndex: number, cardIndex: number) => void
+  selectedCard?: { type: string; index: number; cardIndex?: number } | null
 }
 
-export function Tableau({ tableau, onCardClick }: TableauProps) {
+export function Tableau({ tableau, onCardClick, selectedCard }: TableauProps) {
   return (
     <div className="flex gap-2 mt-6">
       {tableau.map((column, columnIndex) => (
         <div key={columnIndex} className="flex flex-col gap-1 min-h-32">
-          <div className="text-xs text-gray-500 text-center mb-1">
+          <div className="text-xs text-gray-300 text-center mb-1">
             Col {columnIndex + 1}
           </div>
           {column.length === 0 ? (
@@ -33,6 +34,11 @@ export function Tableau({ tableau, onCardClick }: TableauProps) {
               >
                 <Card
                   card={card}
+                  isSelected={
+                    selectedCard?.type === 'tableau' && 
+                    selectedCard?.index === columnIndex && 
+                    selectedCard?.cardIndex === cardIndex
+                  }
                   onClick={() => onCardClick(columnIndex, cardIndex)}
                   className="hover:bg-yellow-50"
                 />

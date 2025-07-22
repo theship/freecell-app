@@ -6,10 +6,12 @@ import { GameBoard } from "@/components/game/GameBoard"
 import { UserProfile } from "@/components/dashboard/UserProfile"
 import { GameStats } from "@/components/dashboard/GameStats"
 import { useState } from "react"
+import { useGameState } from "@/hooks/useGameState"
 
 export default function Dashboard() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState<'game' | 'stats'>('game')
+  const gameState = useGameState()
 
   if (status === "loading") {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -57,7 +59,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {activeTab === 'game' && <GameBoard />}
+        {activeTab === 'game' && <GameBoard gameState={gameState} />}
         {activeTab === 'stats' && <GameStats />}
       </main>
     </div>

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 interface CardProps {
   card: CardType | null
   isDragging?: boolean
+  isSelected?: boolean
   onClick?: () => void
   className?: string
 }
@@ -17,12 +18,13 @@ const suitSymbols = {
   spades: '♠'
 }
 
-export function Card({ card, isDragging = false, onClick, className }: CardProps) {
+export function Card({ card, isDragging = false, isSelected = false, onClick, className }: CardProps) {
   if (!card) {
     return (
       <div 
         className={cn(
           "w-24 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50",
+          isSelected && "bg-yellow-100 border-yellow-400",
           className
         )}
         onClick={onClick}
@@ -38,6 +40,7 @@ export function Card({ card, isDragging = false, onClick, className }: CardProps
         "w-24 h-40 bg-white border border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow flex flex-col justify-between p-2",
         card.color === 'red' ? 'text-red-600' : 'text-black',
         isDragging && 'opacity-50 rotate-12 scale-105',
+        isSelected && "bg-yellow-100 border-yellow-400 shadow-lg",
         className
       )}
       onClick={onClick}
