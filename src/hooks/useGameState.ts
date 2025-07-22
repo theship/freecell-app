@@ -7,7 +7,10 @@ import {
   isValidTableauMove, 
   isValidFoundationMove, 
   checkWinCondition,
-  canMoveSequence
+  canMoveSequence,
+  canAutoComplete,
+  getNextAutoCompleteMove,
+  createTestAutoCompleteGame
 } from '@/lib/game'
 import { useSession } from 'next-auth/react'
 
@@ -37,9 +40,15 @@ async function recordGameCompletion(moves: number, timeSeconds: number, won: boo
 export function useGameState() {
   const { data: session } = useSession()
   const [gameState, setGameState] = useState<GameState>(initializeGame)
+  const [isAutoCompleting, setIsAutoCompleting] = useState(false)
+  const [autoCompleteHighlight, setAutoCompleteHighlight] = useState<{
+    source?: {type: 'freecell' | 'tableau', index: number}
+    destination?: {type: 'foundation', index: number}
+  }>({});
   const gameStartTime = useRef<number>(Date.now())
   const previousWonState = useRef<boolean>(false)
   const gameHasStarted = useRef<boolean>(false)
+  const autoCompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Track game completion (won games)
   useEffect(() => {
@@ -57,11 +66,108 @@ export function useGameState() {
     }
   }, [gameState.moves])
 
+  const performAutoComplete = useCallback(() => {
+    const executeNextMove = () => {
+      setGameState(prevState => {
+        const nextMove = getNextAutoCompleteMove(prevState)
+        if (!nextMove) {
+          setIsAutoCompleting(false)
+          setAutoCompleteHighlight({})
+          return prevState
+        }
+
+        // First highlight the source card
+        setAutoCompleteHighlight({
+          source: {
+            type: nextMove.from.type,
+            index: nextMove.from.index
+          }
+        })
+        
+        // After a delay, also highlight the destination
+        setTimeout(() => {
+          setAutoCompleteHighlight({
+            source: {
+              type: nextMove.from.type,
+              index: nextMove.from.index
+            },
+            destination: {
+              type: 'foundation',
+              index: nextMove.foundationIndex
+            }
+          })
+        }, 400)
+
+        const newState = { ...prevState }
+        
+        // Move card from source to foundation
+        if (nextMove.from.type === 'freecell') {
+          const card = newState.freeCells[nextMove.from.index]
+          if (card) {
+            newState.freeCells[nextMove.from.index] = null
+            newState.foundations[nextMove.foundationIndex].push(card)
+          }
+        } else if (nextMove.from.type === 'tableau') {
+          const column = newState.tableau[nextMove.from.index]
+          if (column.length > 0) {
+            const card = column.pop()
+            if (card) {
+              newState.foundations[nextMove.foundationIndex].push(card)
+            }
+          }
+        }
+
+        newState.moves++
+        newState.isWon = checkWinCondition(newState)
+
+        // Clear highlight after a delay, then schedule next move
+        setTimeout(() => setAutoCompleteHighlight({}), 600)
+        
+        // Schedule next move if not won yet
+        if (!newState.isWon && canAutoComplete(newState)) {
+          autoCompleteTimeoutRef.current = setTimeout(executeNextMove, 1200) // Even slower for visibility
+        } else {
+          setIsAutoCompleting(false)
+          setAutoCompleteHighlight({})
+        }
+
+        return newState
+      })
+    }
+
+    // Start the auto-completion sequence
+    autoCompleteTimeoutRef.current = setTimeout(executeNextMove, 1500) // Even longer initial delay for dramatic effect
+  }, [])
+
+  // Auto-completion effect
+  useEffect(() => {
+    if (!gameState.isWon && !isAutoCompleting && canAutoComplete(gameState)) {
+      setIsAutoCompleting(true)
+      performAutoComplete()
+    }
+  }, [gameState, isAutoCompleting, performAutoComplete])
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoCompleteTimeoutRef.current) {
+        clearTimeout(autoCompleteTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const newGame = useCallback(() => {
+    // Clear any ongoing auto-completion
+    if (autoCompleteTimeoutRef.current) {
+      clearTimeout(autoCompleteTimeoutRef.current)
+      autoCompleteTimeoutRef.current = null
+    }
+    setIsAutoCompleting(false)
+    setAutoCompleteHighlight({})
+
     // Record abandoned game if the previous game was started but not won
     if (gameHasStarted.current && !gameState.isWon && session?.user) {
       const timeSeconds = Math.floor((Date.now() - gameStartTime.current) / 1000)
-      console.log('Recording abandoned game:', { moves: gameState.moves, timeSeconds, won: false })
       recordGameCompletion(gameState.moves, timeSeconds, false)
     }
 
@@ -71,6 +177,22 @@ export function useGameState() {
     previousWonState.current = false
     gameHasStarted.current = false
   }, [gameState.isWon, gameState.moves, session?.user])
+
+  const setTestGame = useCallback(() => {
+    // Clear any ongoing auto-completion
+    if (autoCompleteTimeoutRef.current) {
+      clearTimeout(autoCompleteTimeoutRef.current)
+      autoCompleteTimeoutRef.current = null
+    }
+    setIsAutoCompleting(false)
+    setAutoCompleteHighlight({})
+
+    // Set up test game state
+    setGameState(createTestAutoCompleteGame())
+    gameStartTime.current = Date.now()
+    previousWonState.current = false
+    gameHasStarted.current = true // Mark as started since we have moves to make
+  }, [])
 
   const moveCard = useCallback((
     from: { type: 'freecell' | 'tableau' | 'foundation', index: number, cardIndex?: number },
@@ -180,6 +302,9 @@ export function useGameState() {
   return {
     gameState,
     newGame,
-    moveCard
+    moveCard,
+    isAutoCompleting,
+    setTestGame,
+    autoCompleteHighlight
   }
 }
