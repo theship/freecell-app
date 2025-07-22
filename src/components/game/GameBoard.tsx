@@ -5,6 +5,7 @@ import { FreeCells } from './FreeCells'
 import { Foundations } from './Foundations'
 import { Tableau } from './Tableau'
 import { RefreshCw, Trophy } from 'lucide-react'
+import { GameState } from '@/types/game'
 
 type SelectedCard = {
   type: 'freecell' | 'tableau' | 'foundation'
@@ -14,9 +15,9 @@ type SelectedCard = {
 
 interface GameBoardProps {
   gameState: {
-    gameState: any
+    gameState: GameState
     newGame: () => void
-    moveCard: (from: any, to: any) => void
+    moveCard: (from: { type: 'freecell' | 'tableau' | 'foundation', index: number, cardIndex?: number }, to: { type: 'freecell' | 'tableau' | 'foundation', index: number }) => void
   }
 }
 

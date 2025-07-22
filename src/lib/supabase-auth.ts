@@ -5,7 +5,7 @@ import { supabase } from './supabase'
  * This should be called when the user is authenticated
  */
 export async function setSupabaseAuth(accessToken: string) {
-  const { data, error } = await supabase.auth.setSession({
+  const { error } = await supabase.auth.setSession({
     access_token: accessToken,
     refresh_token: '',
   })

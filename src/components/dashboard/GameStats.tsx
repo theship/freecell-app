@@ -2,7 +2,7 @@
 
 import { Trophy, Target, Clock, TrendingUp, RefreshCw } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 interface DisplayStats {
   gamesPlayed: number
@@ -19,7 +19,7 @@ export function GameStats() {
   const [stats, setStats] = useState<DisplayStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     if (!session?.user) {
       setIsLoading(false)
       return
@@ -41,11 +41,11 @@ export function GameStats() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [session?.user])
 
   useEffect(() => {
     fetchStats()
-  }, [session?.user])
+  }, [session?.user, fetchStats])
 
   // Add refresh button functionality
   const handleRefresh = () => {

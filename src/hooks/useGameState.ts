@@ -7,8 +7,7 @@ import {
   isValidTableauMove, 
   isValidFoundationMove, 
   checkWinCondition,
-  canMoveSequence,
-  getMaxMovableSequence
+  canMoveSequence
 } from '@/lib/game'
 import { useSession } from 'next-auth/react'
 
