@@ -194,7 +194,7 @@ function getMovableCards(gameState: GameState): Array<{card: Card, source: {type
 }
 
 /**
- * Check if a card is safe to move to foundation using FreeCell rules
+ * Check if a card is safe to move to foundation - VERY permissive for testing
  */
 function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
   const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(card.suit)
@@ -204,35 +204,10 @@ function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
   const isValidMove = isValidFoundationMove(card, foundation)
   console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - valid foundation move: ${isValidMove}`)
   
-  if (!isValidMove) {
-    return false
-  }
-  
-  const cardRank = getRankValue(card.rank)
-  
-  // Card is safe to move if there are no cards of opposite color and rank-1 
-  // still in play that would need this card as a building location
-  if (cardRank === 1) {
-    console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - Ace, always safe`)
-    return true // Aces are always safe
-  }
-  
-  const oppositeColor = card.color === 'red' ? 'black' : 'red'
-  const targetRank = cardRank - 1
-  const targetRankString = getStringFromRankValue(targetRank)
-  
-  // Check all remaining cards for blockers
-  const remainingCards = getRemainingCards(gameState)
-  const blockers = remainingCards.filter(c => 
-    c.color === oppositeColor && 
-    c.rank === targetRankString
-  )
-  
-  console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - looking for ${oppositeColor} ${targetRankString} blockers`)
-  console.log(`  🔸 isSafeToMoveToFoundation: Found ${blockers.length} blockers:`, 
-    blockers.map(b => `${b.rank}${b.suit}`))
-  
-  return blockers.length === 0
+  // For now, just return true if it's a valid foundation move
+  // This will be very permissive and auto-complete aggressively
+  console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - PERMISSIVE MODE: ${isValidMove}`)
+  return isValidMove
 }
 
 /**
