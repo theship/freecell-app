@@ -141,9 +141,28 @@ export function useGameState() {
 
   // Auto-completion effect
   useEffect(() => {
-    if (!gameState.isWon && !isAutoCompleting && canAutoComplete(gameState)) {
-      setIsAutoCompleting(true)
-      performAutoComplete()
+    console.log('🎮 Auto-completion check:', {
+      isWon: gameState.isWon,
+      isAutoCompleting,
+      moves: gameState.moves,
+      foundations: gameState.foundations.map((f, i) => `${['♥','♦','♣','♠'][i]}: ${f.length}`),
+      freeCells: gameState.freeCells.map((c, i) => `${i}: ${c ? `${c.rank}${c.suit}` : 'empty'}`),
+      tableauTops: gameState.tableau.map((col, i) => `${i}: ${col.length > 0 ? `${col[col.length-1].rank}${col[col.length-1].suit}` : 'empty'}`)
+    })
+    
+    if (!gameState.isWon && !isAutoCompleting) {
+      const canAuto = canAutoComplete(gameState)
+      console.log(`🎮 Can auto-complete: ${canAuto}`)
+      
+      if (canAuto) {
+        console.log('🚀 Starting auto-completion!')
+        setIsAutoCompleting(true)
+        performAutoComplete()
+      }
+    } else {
+      console.log('🎮 Skipping auto-completion check:', {
+        reason: gameState.isWon ? 'Game already won' : 'Already auto-completing'
+      })
     }
   }, [gameState, isAutoCompleting, performAutoComplete])
 

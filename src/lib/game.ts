@@ -112,18 +112,29 @@ export function getMaxMovableSequence(gameState: GameState): number {
  * Check if the game can be auto-completed using proper FreeCell rules
  */
 export function canAutoComplete(gameState: GameState): boolean {
+  console.log('🔍 canAutoComplete: Starting check...')
+  
   // Simulate moving all possible cards to foundations
   const simulatedState = JSON.parse(JSON.stringify(gameState)) as GameState
   let moved = true
+  let iterations = 0
   
-  while (moved) {
+  while (moved && iterations < 52) { // Safety limit
     moved = false
+    iterations++
+    
+    console.log(`🔄 canAutoComplete: Iteration ${iterations}`)
     
     // Get all movable cards (top cards from tableau + freecells)
     const movableCards = getMovableCards(simulatedState)
+    console.log(`📋 canAutoComplete: Found ${movableCards.length} movable cards:`, 
+      movableCards.map(c => `${c.card.rank}${c.card.suit} from ${c.source.type}[${c.source.index}]`))
     
     for (const cardInfo of movableCards) {
-      if (isSafeToMoveToFoundation(cardInfo.card, simulatedState)) {
+      const isSafe = isSafeToMoveToFoundation(cardInfo.card, simulatedState)
+      console.log(`🃏 canAutoComplete: Checking ${cardInfo.card.rank}${cardInfo.card.suit} - safe: ${isSafe}`)
+      
+      if (isSafe) {
         // Move the card to foundation in simulation
         const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(cardInfo.card.suit)
         simulatedState.foundations[foundationIndex].push(cardInfo.card)
@@ -135,6 +146,7 @@ export function canAutoComplete(gameState: GameState): boolean {
           simulatedState.tableau[cardInfo.source.index].pop()
         }
         
+        console.log(`✅ canAutoComplete: Moved ${cardInfo.card.rank}${cardInfo.card.suit} to foundation`)
         moved = true
         break
       }
@@ -143,7 +155,13 @@ export function canAutoComplete(gameState: GameState): boolean {
   
   // Check if all cards are now in foundations
   const remainingCards = getRemainingCards(simulatedState)
-  return remainingCards.length === 0
+  const canComplete = remainingCards.length === 0
+  
+  console.log(`🏁 canAutoComplete: Final result - ${canComplete ? 'CAN' : 'CANNOT'} auto-complete`)
+  console.log(`📊 canAutoComplete: ${remainingCards.length} cards remaining:`, 
+    remainingCards.map(c => `${c.rank}${c.suit}`))
+  
+  return canComplete
 }
 
 /**
@@ -183,7 +201,10 @@ function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
   const foundation = gameState.foundations[foundationIndex]
   
   // Must be the next card in sequence for this suit
-  if (!isValidFoundationMove(card, foundation)) {
+  const isValidMove = isValidFoundationMove(card, foundation)
+  console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - valid foundation move: ${isValidMove}`)
+  
+  if (!isValidMove) {
     return false
   }
   
@@ -191,7 +212,10 @@ function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
   
   // Card is safe to move if there are no cards of opposite color and rank-1 
   // still in play that would need this card as a building location
-  if (cardRank === 1) return true // Aces are always safe
+  if (cardRank === 1) {
+    console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - Ace, always safe`)
+    return true // Aces are always safe
+  }
   
   const oppositeColor = card.color === 'red' ? 'black' : 'red'
   const targetRank = cardRank - 1
@@ -203,6 +227,10 @@ function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
     c.color === oppositeColor && 
     c.rank === targetRankString
   )
+  
+  console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - looking for ${oppositeColor} ${targetRankString} blockers`)
+  console.log(`  🔸 isSafeToMoveToFoundation: Found ${blockers.length} blockers:`, 
+    blockers.map(b => `${b.rank}${b.suit}`))
   
   return blockers.length === 0
 }
@@ -241,13 +269,19 @@ function getStringFromRankValue(value: number): Rank {
  * Get the next card that should be moved to foundations for auto-completion
  */
 export function getNextAutoCompleteMove(gameState: GameState): { from: { type: 'freecell' | 'tableau', index: number, cardIndex?: number }, foundationIndex: number } | null {
+  console.log('🎯 getNextAutoCompleteMove: Looking for next move...')
+  
   // Get all movable cards and find the first one that's safe to move
   const movableCards = getMovableCards(gameState)
+  console.log(`🎯 getNextAutoCompleteMove: Found ${movableCards.length} movable cards`)
   
   for (const cardInfo of movableCards) {
-    if (isSafeToMoveToFoundation(cardInfo.card, gameState)) {
+    const isSafe = isSafeToMoveToFoundation(cardInfo.card, gameState)
+    console.log(`🎯 getNextAutoCompleteMove: ${cardInfo.card.rank}${cardInfo.card.suit} is ${isSafe ? 'SAFE' : 'NOT SAFE'} to move`)
+    
+    if (isSafe) {
       const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(cardInfo.card.suit)
-      return {
+      const move = {
         from: {
           type: cardInfo.source.type,
           index: cardInfo.source.index,
@@ -255,9 +289,12 @@ export function getNextAutoCompleteMove(gameState: GameState): { from: { type: '
         },
         foundationIndex
       }
+      console.log(`🎯 getNextAutoCompleteMove: Returning move:`, move)
+      return move
     }
   }
   
+  console.log('🎯 getNextAutoCompleteMove: No safe moves found')
   return null
 }
 
