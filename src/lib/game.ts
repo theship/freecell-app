@@ -109,91 +109,151 @@ export function getMaxMovableSequence(gameState: GameState): number {
 }
 
 /**
- * Check if the game can be auto-completed (all remaining cards can go to foundations)
+ * Check if the game can be auto-completed using proper FreeCell rules
  */
 export function canAutoComplete(gameState: GameState): boolean {
-  const { freeCells, tableau } = gameState
+  // Simulate moving all possible cards to foundations
+  const simulatedState = JSON.parse(JSON.stringify(gameState)) as GameState
+  let moved = true
   
-  // Get all cards that aren't in foundations yet
+  while (moved) {
+    moved = false
+    
+    // Get all movable cards (top cards from tableau + freecells)
+    const movableCards = getMovableCards(simulatedState)
+    
+    for (const cardInfo of movableCards) {
+      if (isSafeToMoveToFoundation(cardInfo.card, simulatedState)) {
+        // Move the card to foundation in simulation
+        const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(cardInfo.card.suit)
+        simulatedState.foundations[foundationIndex].push(cardInfo.card)
+        
+        // Remove from source
+        if (cardInfo.source.type === 'freecell') {
+          simulatedState.freeCells[cardInfo.source.index] = null
+        } else if (cardInfo.source.type === 'tableau') {
+          simulatedState.tableau[cardInfo.source.index].pop()
+        }
+        
+        moved = true
+        break
+      }
+    }
+  }
+  
+  // Check if all cards are now in foundations
+  const remainingCards = getRemainingCards(simulatedState)
+  return remainingCards.length === 0
+}
+
+/**
+ * Get all cards that can currently be moved (top of tableau columns + freecells)
+ */
+function getMovableCards(gameState: GameState): Array<{card: Card, source: {type: 'freecell' | 'tableau', index: number}}> {
+  const movableCards: Array<{card: Card, source: {type: 'freecell' | 'tableau', index: number}}> = []
+  
+  // Add freecell cards
+  gameState.freeCells.forEach((card, index) => {
+    if (card) {
+      movableCards.push({
+        card,
+        source: { type: 'freecell', index }
+      })
+    }
+  })
+  
+  // Add top cards from tableau columns
+  gameState.tableau.forEach((column, index) => {
+    if (column.length > 0) {
+      movableCards.push({
+        card: column[column.length - 1],
+        source: { type: 'tableau', index }
+      })
+    }
+  })
+  
+  return movableCards
+}
+
+/**
+ * Check if a card is safe to move to foundation using FreeCell rules
+ */
+function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
+  const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(card.suit)
+  const foundation = gameState.foundations[foundationIndex]
+  
+  // Must be the next card in sequence for this suit
+  if (!isValidFoundationMove(card, foundation)) {
+    return false
+  }
+  
+  const cardRank = getRankValue(card.rank)
+  
+  // Card is safe to move if there are no cards of opposite color and rank-1 
+  // still in play that would need this card as a building location
+  if (cardRank === 1) return true // Aces are always safe
+  
+  const oppositeColor = card.color === 'red' ? 'black' : 'red'
+  const targetRank = cardRank - 1
+  const targetRankString = getStringFromRankValue(targetRank)
+  
+  // Check all remaining cards for blockers
+  const remainingCards = getRemainingCards(gameState)
+  const blockers = remainingCards.filter(c => 
+    c.color === oppositeColor && 
+    c.rank === targetRankString
+  )
+  
+  return blockers.length === 0
+}
+
+/**
+ * Get all cards not yet in foundations
+ */
+function getRemainingCards(gameState: GameState): Card[] {
   const remainingCards: Card[] = []
   
-  // Add cards from freecells
-  freeCells.forEach(card => {
+  // Add freecell cards
+  gameState.freeCells.forEach(card => {
     if (card) remainingCards.push(card)
   })
   
-  // Add ALL cards from tableau columns, not just top cards
-  tableau.forEach(column => {
+  // Add tableau cards
+  gameState.tableau.forEach(column => {
     remainingCards.push(...column)
   })
   
-  // If no remaining cards, it's already won
-  if (remainingCards.length === 0) return false
-  
-  // More lenient check: auto-complete is possible if:
-  // 1. We have relatively few cards left (20 or fewer for earlier triggering)
-  // 2. All tableau columns are properly sequenced (descending, alternating colors)
-  // 3. All cards can eventually be placed on foundations
-  
-  const hasProperTableauSequences = tableau.every(column => {
-    // Empty columns are fine
-    if (column.length === 0) return true
-    
-    // Check if column is in proper descending sequence
-    for (let i = 0; i < column.length - 1; i++) {
-      const current = column[i]
-      const next = column[i + 1]
-      const currentValue = getRankValue(current.rank)
-      const nextValue = getRankValue(next.rank)
-      
-      // Must be descending by 1 and alternating colors
-      if (currentValue !== nextValue + 1 || current.color === next.color) {
-        return false
-      }
-    }
-    return true
-  })
-  
-  // Check that there's at least one card that can be moved to foundations right now
-  const hasImmediateMove = getNextAutoCompleteMove(gameState) !== null
-  
-  // More generous threshold - trigger when 20 or fewer cards remain
-  const fewCardsRemaining = remainingCards.length <= 20
-  
-  return hasProperTableauSequences && hasImmediateMove && fewCardsRemaining
+  return remainingCards
+}
+
+/**
+ * Convert rank value back to string
+ */
+function getStringFromRankValue(value: number): Rank {
+  const rankMap: Record<number, Rank> = {
+    1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
+    8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K'
+  }
+  return rankMap[value]
 }
 
 /**
  * Get the next card that should be moved to foundations for auto-completion
  */
 export function getNextAutoCompleteMove(gameState: GameState): { from: { type: 'freecell' | 'tableau', index: number, cardIndex?: number }, foundationIndex: number } | null {
-  const { freeCells, tableau, foundations } = gameState
+  // Get all movable cards and find the first one that's safe to move
+  const movableCards = getMovableCards(gameState)
   
-  // Check freecells first (easier moves)
-  for (let i = 0; i < freeCells.length; i++) {
-    const card = freeCells[i]
-    if (card) {
-      const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(card.suit)
-      if (isValidFoundationMove(card, foundations[foundationIndex])) {
-        return {
-          from: { type: 'freecell', index: i },
-          foundationIndex
-        }
-      }
-    }
-  }
-  
-  // Check top cards of tableau columns
-  for (let i = 0; i < tableau.length; i++) {
-    const column = tableau[i]
-    if (column.length > 0) {
-      const topCard = column[column.length - 1]
-      const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(topCard.suit)
-      if (isValidFoundationMove(topCard, foundations[foundationIndex])) {
-        return {
-          from: { type: 'tableau', index: i, cardIndex: column.length - 1 },
-          foundationIndex
-        }
+  for (const cardInfo of movableCards) {
+    if (isSafeToMoveToFoundation(cardInfo.card, gameState)) {
+      const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(cardInfo.card.suit)
+      return {
+        from: {
+          type: cardInfo.source.type,
+          index: cardInfo.source.index,
+          cardIndex: cardInfo.source.type === 'tableau' ? gameState.tableau[cardInfo.source.index].length - 1 : undefined
+        },
+        foundationIndex
       }
     }
   }
