@@ -200,9 +200,19 @@ function isSafeToMoveToFoundation(card: Card, gameState: GameState): boolean {
   const foundationIndex = ['hearts', 'diamonds', 'clubs', 'spades'].indexOf(card.suit)
   const foundation = gameState.foundations[foundationIndex]
   
+  // Show current foundation state
+  const foundationTop = foundation.length > 0 ? foundation[foundation.length - 1].rank : 'empty'
+  console.log(`  🔸 Foundation ${card.suit}: currently has ${foundation.length} cards, top card: ${foundationTop}`)
+  console.log(`  🔸 Trying to place: ${card.rank}${card.suit}`)
+  
   // Must be the next card in sequence for this suit
   const isValidMove = isValidFoundationMove(card, foundation)
   console.log(`  🔸 isSafeToMoveToFoundation: ${card.rank}${card.suit} - valid foundation move: ${isValidMove}`)
+  
+  if (!isValidMove) {
+    const expectedRank = foundation.length === 0 ? 'A' : getStringFromRankValue(getRankValue(foundation[foundation.length - 1].rank) + 1)
+    console.log(`  🔸 Expected next card for ${card.suit}: ${expectedRank}`)
+  }
   
   // For now, just return true if it's a valid foundation move
   // This will be very permissive and auto-complete aggressively
